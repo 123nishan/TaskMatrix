@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.Button
@@ -26,7 +27,9 @@ import androidx.compose.ui.tooling.preview.Devices.PIXEL_7_PRO
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.nishan.taskmatrix.ui.theme.TaskMatrixTheme
+import com.nishan.taskmatrix.ui.theme.components.TaskCard
 import com.nishan.taskmatrix.ui.theme.components.TaskMatrixTextField
+import com.nishan.taskmatrix.util.Priority
 
 @Composable
 fun HomeScreenRoot(modifier: Modifier = Modifier) {
@@ -36,6 +39,7 @@ fun HomeScreenRoot(modifier: Modifier = Modifier) {
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier) {
+    val taskList = listOf( "Task 1", " Task 2" )
     Column(
         modifier = modifier
             .fillMaxSize( )
@@ -54,19 +58,22 @@ fun HomeScreen(modifier: Modifier = Modifier) {
         )
 
         TaskMatrixTextField(
-            state = rememberTextFieldState(initialText = "Search Tasks..."),
+            state = rememberTextFieldState(initialText = "Search Tasks..."), //TODO: update the state in upper composable
             modifier = Modifier
                 .fillMaxWidth()
-
-
         )
 
-        Row {
+        Row(
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
             Button(
                 onClick = { /*TODO*/ },
                 modifier = Modifier
                     .height(50.dp)
-                    .weight(1f),
+                    .width(160.dp)
+                    ,
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(text = "Priority Matrix")
@@ -75,7 +82,8 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                 onClick = { /*TODO*/ },
                 modifier = Modifier
                     .height(50.dp)
-                    .weight(1f),
+                    .width(160.dp)
+                   ,
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(text = "Time Blocks")
@@ -91,6 +99,15 @@ fun HomeScreen(modifier: Modifier = Modifier) {
         HorizontalDivider(
             color = Color.Black
         )
+        for (task in taskList){
+            TaskCard(
+                modifier = Modifier,
+                priority = Priority.Medium,
+                taskName = task,
+                due = "2:00 PM",
+                checked = false,
+            )
+        }
 
 
 
