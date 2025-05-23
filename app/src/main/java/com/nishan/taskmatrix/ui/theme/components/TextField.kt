@@ -1,11 +1,14 @@
 package com.nishan.taskmatrix.ui.theme.components
 
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -21,27 +24,32 @@ fun TaskMatrixTextField(
     modifier: Modifier = Modifier,
     maxLines: Int = Int.MAX_VALUE,
     leadingIcon: @Composable (() -> Unit)? = null,
-    placeholderText: String = "Default"
+    label: String = "Default",
+    minLines: Int = 1,
 ) {
 
-    TextField(
+    OutlinedTextField(
         state = state,
-        placeholder = {
+        label = {
             Text("")
         },
         leadingIcon = leadingIcon,
+        lineLimits = TextFieldLineLimits.MultiLine(minLines,maxLines),
         modifier = modifier
             .clip(RoundedCornerShape(16.dp)) // Apply rounded corners here
     )
 }
 
 
-@Preview
+@Preview(
+    showBackground = true
+)
 @Composable
 private fun TaskMatrixTextFieldPreview() {
     TaskMatrixTheme {
-        TaskMatrixTextField(state = rememberTextFieldState(initialText = "Search Tasks...")
-        ,
+        TaskMatrixTextField(state = rememberTextFieldState(initialText = "Search Tasks..."),
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 15,
             leadingIcon = {
                 Icon(Icons.Default.Search,null)
             })
