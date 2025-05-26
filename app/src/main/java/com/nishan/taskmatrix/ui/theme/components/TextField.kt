@@ -26,12 +26,13 @@ fun TaskMatrixTextField(
     leadingIcon: @Composable (() -> Unit)? = null,
     label: String = "Default",
     minLines: Int = 1,
+
 ) {
 
     OutlinedTextField(
         state = state,
         label = {
-            Text("")
+            Text(label)
         },
         leadingIcon = leadingIcon,
         lineLimits = TextFieldLineLimits.MultiLine(minLines,maxLines),
