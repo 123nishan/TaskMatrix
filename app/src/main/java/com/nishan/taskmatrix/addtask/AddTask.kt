@@ -56,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices.PIXEL_5
@@ -106,7 +107,7 @@ fun AddTaskScreen(
     val selectedDate = addTaskUiState.timeUiState.datePickerState.selectedDateMillis?.let {
         convertMillisToDate(it)
     } ?: ""
-
+    val keyboardController = LocalSoftwareKeyboardController.current
     var selectedPriority by remember { mutableStateOf<Priority>(Priority.Low) }
 
     Box(
@@ -280,6 +281,7 @@ fun AddTaskScreen(
             }
             Button(
                 onClick = {
+                    keyboardController?.hide()
                     onEvent(AddTaskEvents.SaveTask)
                 },
                 modifier = Modifier

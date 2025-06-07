@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias (libs.plugins.google.ksp)
 }
 
 android {
@@ -85,4 +86,9 @@ dependencies {
 
     implementation(libs.koin.androidx.compose)
     implementation(libs.koin.android)
+    // Room
+    implementation(libs.androidx.room.runtime)
+    // annotationProcessor(libs.androidx.room.compiler) // We use ksp instead of annotationProcessor for Room compiler
+    ksp(libs.androidx.room.compiler) // Use ksp for the Room compiler
+    implementation(libs.androidx.room.ktx)
 }
