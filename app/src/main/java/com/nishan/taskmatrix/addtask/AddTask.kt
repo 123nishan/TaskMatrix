@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
@@ -34,23 +33,24 @@ import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerState
 import androidx.compose.material3.VerticalDivider
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,37 +61,52 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Devices.PIXEL_5
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nishan.taskmatrix.addtask.components.PrioritySelector
+import com.nishan.taskmatrix.addtask.util.AddTaskEvents
+import com.nishan.taskmatrix.addtask.util.AddTaskUiState
+import com.nishan.taskmatrix.addtask.util.TimeUiState
+import com.nishan.taskmatrix.addtask.util.ToSaveValidationState
 import com.nishan.taskmatrix.ui.theme.TaskMatrixTheme
 import com.nishan.taskmatrix.ui.theme.components.TaskMatrixTextField
 import com.nishan.taskmatrix.util.Priority
 import com.nishan.taskmatrix.util.convertMillisToDate
-import java.util.Calendar
+import org.koin.androidx.compose.koinViewModel
+import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddTaskRoot(modifier: Modifier = Modifier) {
-
+fun AddTaskRoot(
+    modifier: Modifier = Modifier,
+    addTaskViewModel: AddTaskViewModel = koinViewModel<AddTaskViewModel>(),
+    snackBarHostState: SnackbarHostState
+) {
+    val state: AddTaskUiState by addTaskViewModel.uiState.collectAsStateWithLifecycle()
+    AddTaskScreen(
+        modifier = modifier,
+        onEvent = addTaskViewModel::onEvent,
+        addTaskUiState = state,
+        toSaveValidationState = state.toSaveValidationState
+    )
+    LaunchedEffect(Unit) {
+        addTaskViewModel.snackBarChannel.collect {
+            snackBarHostState.showSnackbar(it)
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddTaskScreen(modifier: Modifier = Modifier) {
-
-    var isExpanded by rememberSaveable { mutableStateOf(false) }
-    var isAllDaySelected by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = System.currentTimeMillis()
-    )
-    var isDateSelected by remember { mutableStateOf(false) }
-    var isTimeSelected by remember { mutableStateOf(false) }
-    val selectedDate = datePickerState.selectedDateMillis?.let {
+fun AddTaskScreen(
+    modifier: Modifier = Modifier,
+    onEvent: (AddTaskEvents) -> Unit = {},
+    addTaskUiState: AddTaskUiState,
+    toSaveValidationState: ToSaveValidationState
+) {
+    val selectedDate = addTaskUiState.timeUiState.datePickerState.selectedDateMillis?.let {
         convertMillisToDate(it)
     } ?: ""
-    val currentTime = Calendar.getInstance()
-    val timePickerState = rememberTimePickerState(
-        initialHour = currentTime.get(Calendar.HOUR_OF_DAY),
-        initialMinute = currentTime.get(Calendar.MINUTE),
-        is24Hour = true,
-    )
+
     var selectedPriority by remember { mutableStateOf<Priority>(Priority.Low) }
 
     Box(
@@ -116,7 +131,7 @@ fun AddTaskScreen(modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.primary
             )
             TaskMatrixTextField(
-                state = rememberTextFieldState(), //TODO: update the state in upper composable
+                state = addTaskUiState.titleState,
                 modifier = Modifier
                     .fillMaxWidth(),
                 label = "Title",
@@ -124,7 +139,7 @@ fun AddTaskScreen(modifier: Modifier = Modifier) {
             )
 
             TaskMatrixTextField(
-                state = rememberTextFieldState(), //TODO: update the state in upper composable
+                state = addTaskUiState.descriptionState,
                 modifier = Modifier
                     .fillMaxWidth(),
                 label = "Description",
@@ -142,22 +157,25 @@ fun AddTaskScreen(modifier: Modifier = Modifier) {
                         .fillMaxSize()
                         .padding(horizontal = 16.dp)
                         .clickable {
-                            if (!isExpanded) {
-                                isExpanded = true
-                            }
+                            onEvent(AddTaskEvents.ExpandDateTimeSection)
+//                            if (!isExpanded) {
+//                                isExpanded = true
+//                            }
                         }
                 ) {
 
                     Column {
                         ExpandableSectionTitle(
-                            isExpanded = isExpanded,
+                            isExpanded = addTaskUiState.timeUiState.isTimeSectionExpanded,
                             title = "Time",
-                            closeExpanded = { isExpanded = false }
+                            closeExpanded = {
+                                onEvent(AddTaskEvents.CollapseDateTimeSection)
+                            }
                         )
                         AnimatedVisibility(
                             modifier = Modifier
                                 .fillMaxWidth(),
-                            visible = isExpanded
+                            visible = addTaskUiState.timeUiState.isTimeSectionExpanded
                         ) {
 
                             Column(
@@ -165,28 +183,33 @@ fun AddTaskScreen(modifier: Modifier = Modifier) {
                                     .fillMaxSize(),
                             ) {
                                 AllDayRow(
-                                    allDaySelected = isAllDaySelected,
+                                    allDaySelected = addTaskUiState.timeUiState.isAllDaySelected,
                                     onAllDaySelectedChange = {
-                                        isAllDaySelected = it
+//                                        isAllDaySelected = it
+                                        onEvent(AddTaskEvents.AllDaySelected(it))
+//                                        if (isTimeSelected) isTimeSelected = false
+//                                        if (isDateSelected) isDateSelected = false
                                     })
                                 DateAndTimeSelector(
-                                    isAllDaySelected = isAllDaySelected,
+                                    isAllDaySelected = addTaskUiState.timeUiState.isAllDaySelected,
                                     selectedDate = selectedDate,
-                                    isDateSelected = isDateSelected,
+                                    isDateSelected = addTaskUiState.timeUiState.isDatePickerVisible,
                                     onDateSelectedChange = {
-                                        isDateSelected = !isDateSelected
-                                        if (isTimeSelected) isTimeSelected = false
+                                        onEvent(AddTaskEvents.ShowDatePicker)
+//                                        isDateSelected = !isDateSelected
+//                                        if (isTimeSelected) isTimeSelected = false
                                     },
                                     onTimeSelectedChange = {
-                                        isTimeSelected = !isTimeSelected
-                                        if (isDateSelected) isDateSelected = false
+                                        onEvent(AddTaskEvents.ShowTimePicker)
+//                                        isTimeSelected = !isTimeSelected
+//                                        if (isDateSelected) isDateSelected = false
                                     },
-                                    isTimeSelected = isTimeSelected,
-                                    selectedTime = "${timePickerState.hour.toString()} : ${timePickerState.minute.toString()}"
+                                    isTimeSelected = addTaskUiState.timeUiState.isTimePickerVisible,
+                                    selectedTime = "${addTaskUiState.timeUiState.timePickerState.hour} : ${addTaskUiState.timeUiState.timePickerState.minute}"
                                 )
 
                                 AnimatedVisibility(
-                                    visible = isDateSelected
+                                    visible = addTaskUiState.timeUiState.isDatePickerVisible
                                 ) {
                                     BoxWithConstraints(
                                         modifier = Modifier.fillMaxWidth()
@@ -197,7 +220,7 @@ fun AddTaskScreen(modifier: Modifier = Modifier) {
                                             1f
                                         }
                                         DatePicker(
-                                            state = datePickerState,
+                                            state = addTaskUiState.timeUiState.datePickerState,
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .requiredWidthIn(min = 360.dp)
@@ -210,10 +233,10 @@ fun AddTaskScreen(modifier: Modifier = Modifier) {
                                 }
 
                                 AnimatedVisibility(
-                                    visible = isTimeSelected
+                                    visible = addTaskUiState.timeUiState.isTimePickerVisible
                                 ) {
                                     TimePicker(
-                                        state = timePickerState,
+                                        state = addTaskUiState.timeUiState.timePickerState,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .align(Alignment.CenterHorizontally)
@@ -256,7 +279,9 @@ fun AddTaskScreen(modifier: Modifier = Modifier) {
                 Text("Cancel")
             }
             Button(
-                onClick = {},
+                onClick = {
+                    onEvent(AddTaskEvents.SaveTask)
+                },
                 modifier = Modifier
                     .weight(1f)
             ) {
@@ -364,8 +389,7 @@ fun ExpandableSectionTitle(
     title: String,
     closeExpanded: () -> Unit
 ) {
-    val icon =
-        if (isExpanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown
+    if (isExpanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown
 
     Row(
         modifier = modifier.fillMaxSize(),
@@ -400,6 +424,7 @@ fun ExpandableSectionTitle(
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Preview(
     showBackground = true,
     device = PIXEL_5
@@ -408,7 +433,21 @@ fun ExpandableSectionTitle(
 private fun AddTaskScreenPreview() {
     TaskMatrixTheme {
         AddTaskScreen(
-
+            modifier = Modifier.fillMaxSize(),
+            addTaskUiState = AddTaskUiState(
+                timeUiState = TimeUiState(
+                    datePickerState = DatePickerState(
+                        locale = Locale.getDefault(),
+                        initialSelectedDateMillis = System.currentTimeMillis(),
+                    ),
+                    timePickerState = TimePickerState(
+                        initialHour = 12,
+                        initialMinute = 0,
+                        is24Hour = true
+                    )
+                )
+            ),
+            toSaveValidationState = ToSaveValidationState()
         )
     }
 }
