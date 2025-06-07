@@ -9,16 +9,14 @@ import com.nishan.taskmatrix.data.model.TaskEntity
 @Dao
 interface TaskDao {
     @Query("SELECT * FROM TaskEntity")
-    fun getAll(): List<TaskEntity>
+    suspend fun getAll(): List<TaskEntity>
 
     @Query("SELECT * FROM TaskEntity WHERE id = :id")
-    fun getById(id: Int): TaskEntity
+    suspend fun getById(id: Int): TaskEntity
 
     @Insert
-    fun insert(vararg task: TaskEntity)
+    suspend fun insert(vararg task: TaskEntity)
 
     @Delete
-    fun delete(task: TaskEntity)
-
-
+    suspend fun delete(task: TaskEntity)
 }

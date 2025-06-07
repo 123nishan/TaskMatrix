@@ -4,12 +4,14 @@ import android.icu.util.Calendar
 import androidx.compose.material3.DatePickerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TimePickerState
-import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nishan.taskmatrix.addtask.util.AddTaskEvents
 import com.nishan.taskmatrix.addtask.util.AddTaskUiState
 import com.nishan.taskmatrix.addtask.util.TimeUiState
+import com.nishan.taskmatrix.domain.model.Task
+import com.nishan.taskmatrix.domain.repository.TaskRepository
+import com.nishan.taskmatrix.domain.toEpochMillis
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +23,9 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class AddTaskViewModel() : ViewModel() {
+class AddTaskViewModel(
+    private val taskRepository: TaskRepository
+) : ViewModel() {
 
     private val _snackBarChannel = Channel<String>(Channel.BUFFERED)
     val snackBarChannel = _snackBarChannel.receiveAsFlow()
@@ -32,7 +36,6 @@ class AddTaskViewModel() : ViewModel() {
         initialSelectedDateMillis = System.currentTimeMillis(),
     )
     val currentTime = Calendar.getInstance()
-
 
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -60,8 +63,7 @@ class AddTaskViewModel() : ViewModel() {
             AddTaskEvents.SaveTask -> {
                 val titleSize = _uiState.value.titleState.text.length
                 val descriptionSize = _uiState.value.descriptionState.text.length
-                _uiState.update {
-                    currentState ->
+                _uiState.update { currentState ->
                     currentState.copy(
                         toSaveValidationState = currentState.toSaveValidationState.copy(
                             hasTitle = titleSize > 0,
@@ -69,20 +71,58 @@ class AddTaskViewModel() : ViewModel() {
                         )
                     )
                 }
-               if(!_uiState.value.toSaveValidationState.isValidSave) {
-
-                   viewModelScope.launch {
-                       val toSaveValidationState = _uiState.value.toSaveValidationState
-                       val missingFields = buildList {
-                           if (!toSaveValidationState.hasTitle) add("Title")
-                           if (!toSaveValidationState.hasDescription) add("Description")
-                       }
-                       if(missingFields.isNotEmpty()) {
-                           val message = "Please check the following fields: ${missingFields.joinToString(", ")}"
-                           _snackBarChannel.send(message)
-                       }
-                   }
-               }
+                
+                if (!_uiState.value.toSaveValidationState.isValidSave) {
+                    viewModelScope.launch {
+                        val toSaveValidationState = _uiState.value.toSaveValidationState
+                        val missingFields = buildList {
+                            if (!toSaveValidationState.hasTitle) add("Title")
+                            if (!toSaveValidationState.hasDescription) add("Description")
+                        }
+                        if (missingFields.isNotEmpty()) {
+                            val message = "Please check the following fields: ${missingFields.joinToString(", ")}"
+                            _snackBarChannel.send(message)
+                        }
+                    }
+                } else {
+                    viewModelScope.launch {
+                        try {
+                            val title = _uiState.value.titleState.text.toString()
+                            val description = _uiState.value.descriptionState.text.toString()
+                            val priority = _uiState.value.priorityUiState.selectedPriority
+                            val date = _uiState.value.timeUiState.datePickerState.selectedDateMillis
+                            val hour = _uiState.value.timeUiState.timePickerState.hour
+                            val minute = _uiState.value.timeUiState.timePickerState.minute
+                            
+                            val task = if (_uiState.value.timeUiState.isAllDaySelected) {
+                                Task(
+                                    title = title,
+                                    description = description,
+                                    priority = priority,
+                                    date = date,
+                                    time = null,
+                                    isAllDay = true
+                                )
+                            } else {
+                                Task(
+                                    title = title,
+                                    description = description,
+                                    priority = priority,
+                                    date = date,
+                                    time = date?.let {
+                                        toEpochMillis(it, hour, minute)
+                                    },
+                                    isAllDay = false
+                                )
+                            }
+                            
+                            taskRepository.insertTask(task)
+                            _snackBarChannel.send("Task saved successfully")
+                        } catch (e: Exception) {
+                            _snackBarChannel.send("Failed to save task: ${e.message}")
+                        }
+                    }
+                }
             }
 
             AddTaskEvents.ShowDatePicker -> {
