@@ -28,8 +28,9 @@ import androidx.compose.ui.tooling.preview.Devices.PIXEL_7_PRO
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.toColorInt
+import com.nishan.taskmatrix.domain.model.Priority
 import com.nishan.taskmatrix.ui.theme.TaskMatrixTheme
-import com.nishan.taskmatrix.util.Priority
+
 
 @Composable
 fun TaskCard(
