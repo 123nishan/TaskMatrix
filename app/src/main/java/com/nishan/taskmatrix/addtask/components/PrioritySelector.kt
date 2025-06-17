@@ -20,11 +20,16 @@ import androidx.compose.ui.tooling.preview.Devices.PIXEL_7_PRO
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.toColorInt
+import com.nishan.taskmatrix.domain.model.Priority
+import com.nishan.taskmatrix.ui.mapper.toUi
 import com.nishan.taskmatrix.ui.theme.TaskMatrixTheme
-import com.nishan.taskmatrix.util.Priority
 
 @Composable
-fun PrioritySelector(modifier: Modifier = Modifier,selectedPriority: Priority,onPrioritySelectionChange: (Priority) -> Unit) {
+fun PrioritySelector(
+    modifier: Modifier = Modifier,
+    selectedPriority: Priority,
+    onPrioritySelectionChange: (Priority) -> Unit
+) {
     FlowRow(
         modifier = modifier
             .fillMaxSize(),
@@ -32,9 +37,10 @@ fun PrioritySelector(modifier: Modifier = Modifier,selectedPriority: Priority,on
         maxLines = 2
     ) {
         Priority.values.forEach {
+            val ui = it.toUi()
             FilterChip(
                 modifier = Modifier.weight(1f),
-                selected = it==selectedPriority,
+                selected = it == selectedPriority,
                 onClick = {
                     onPrioritySelectionChange(it)
                 },
@@ -45,7 +51,7 @@ fun PrioritySelector(modifier: Modifier = Modifier,selectedPriority: Priority,on
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row {
-                            for (i in 1..it.level){
+                            for (i in 1..ui.level) {
                                 Icon(
                                     Icons.Rounded.Star,
                                     contentDescription = null,
@@ -55,16 +61,15 @@ fun PrioritySelector(modifier: Modifier = Modifier,selectedPriority: Priority,on
                                 )
                             }
                         }
-                        Text(it.displayText)
+                        Text(ui.title)
                     }
                 },
-               colors = filterChipColors(containerColor = it.color),
+                colors = filterChipColors(containerColor = ui.color),
 
-            )
+                )
         }
     }
 }
-
 
 
 @Preview(

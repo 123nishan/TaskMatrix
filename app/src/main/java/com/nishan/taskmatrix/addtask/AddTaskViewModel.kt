@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nishan.taskmatrix.addtask.util.AddTaskEvents
 import com.nishan.taskmatrix.addtask.util.AddTaskUiState
+import com.nishan.taskmatrix.addtask.util.DateUiState
 import com.nishan.taskmatrix.addtask.util.TimeUiState
 import com.nishan.taskmatrix.domain.model.Task
 import com.nishan.taskmatrix.domain.repository.TaskRepository
@@ -48,9 +49,14 @@ class AddTaskViewModel(
     @OptIn(ExperimentalMaterial3Api::class)
     private val _uiState = MutableStateFlow<AddTaskUiState>(
         AddTaskUiState(
-            timeUiState = TimeUiState(
-                datePickerState = datePickerState,
+            startTimeUiState = TimeUiState(
                 timePickerState = timePickerState
+            ),
+            endTimeUiState = TimeUiState(
+                timePickerState = timePickerState
+            ),
+            dateUiState = DateUiState(
+                datePickerState = datePickerState
             )
         )
     )
@@ -71,8 +77,8 @@ class AddTaskViewModel(
                         )
                     )
                 }
-                
                 if (!_uiState.value.toSaveValidationState.isValidSave) {
+
                     viewModelScope.launch {
                         val toSaveValidationState = _uiState.value.toSaveValidationState
                         val missingFields = buildList {
@@ -80,46 +86,47 @@ class AddTaskViewModel(
                             if (!toSaveValidationState.hasDescription) add("Description")
                         }
                         if (missingFields.isNotEmpty()) {
-                            val message = "Please check the following fields: ${missingFields.joinToString(", ")}"
+                            val message =
+                                "Please check the following fields: ${missingFields.joinToString(", ")}"
                             _snackBarChannel.send(message)
                         }
                     }
                 } else {
                     viewModelScope.launch {
-                        try {
-                            val title = _uiState.value.titleState.text.toString()
-                            val description = _uiState.value.descriptionState.text.toString()
-                            val priority = _uiState.value.priorityUiState.selectedPriority
-                            val date = _uiState.value.timeUiState.datePickerState.selectedDateMillis
-                            val hour = _uiState.value.timeUiState.timePickerState.hour
-                            val minute = _uiState.value.timeUiState.timePickerState.minute
-                            
-                            val task = if (_uiState.value.timeUiState.isAllDaySelected) {
+                        val title = _uiState.value.titleState.text.toString()
+                        val description = _uiState.value.descriptionState.text.toString()
+                        val priority = _uiState.value.priorityUiState.selectedPriority
+                        val date = _uiState.value.dateUiState.datePickerState.selectedDateMillis
+                        val hour = _uiState.value.startTimeUiState.timePickerState.hour
+                        val minute = _uiState.value.startTimeUiState.timePickerState.minute
+                        if (_uiState.value.isAllDaySelected) {
+                            taskRepository.insertTask(
                                 Task(
                                     title = title,
                                     description = description,
                                     priority = priority,
                                     date = date,
-                                    time = null,
+                                    startTime = null,
+                                    endTime = null,
                                     isAllDay = true
                                 )
-                            } else {
+                            )
+                        } else {
+
+                            taskRepository.insertTask(
                                 Task(
                                     title = title,
                                     description = description,
                                     priority = priority,
                                     date = date,
-                                    time = date?.let {
+                                    startTime = date?.let {
                                         toEpochMillis(it, hour, minute)
                                     },
+                                    endTime = null,
                                     isAllDay = false
                                 )
-                            }
-                            
-                            taskRepository.insertTask(task)
-                            _snackBarChannel.send("Task saved successfully")
-                        } catch (e: Exception) {
-                            _snackBarChannel.send("Failed to save task: ${e.message}")
+                            )
+                            _snackBarChannel.send("Data inserted successfully")
                         }
                     }
                 }
@@ -127,12 +134,20 @@ class AddTaskViewModel(
 
             AddTaskEvents.ShowDatePicker -> {
                 _uiState.update { currentState ->
-                    val currentTimeUiState = currentState.timeUiState
+                    val currentUiState = currentState
                     currentState.copy(
-                        timeUiState = currentTimeUiState.copy(
-                            isDatePickerVisible = !currentTimeUiState.isDatePickerVisible,
-                            isTimePickerVisible = if (currentTimeUiState.isTimePickerVisible) false else currentTimeUiState.isTimePickerVisible
+                        dateUiState = currentUiState.dateUiState.copy(
+                            isDatePickerVisible = !currentUiState.dateUiState.isDatePickerVisible
+                        ),
+                        startTimeUiState = currentUiState.startTimeUiState.copy(
+                            isTimePickerVisible = if (currentUiState.startTimeUiState.isTimePickerVisible) false else currentUiState.startTimeUiState.isTimePickerVisible
+
                         )
+                        //TODO same with end time
+//                        datePickerState = currentTimeUiState.copy(
+//                            isDatePickerVisible = !currentTimeUiState.isDatePickerVisible,
+//                            isTimePickerVisible = if (currentTimeUiState.isTimePickerVisible) false else currentTimeUiState.isTimePickerVisible
+//                        )
                     )
 
                 }
@@ -141,45 +156,56 @@ class AddTaskViewModel(
             AddTaskEvents.ShowPriorityPicker -> TODO()
             AddTaskEvents.ShowTimePicker -> {
                 _uiState.update { currentState ->
-                    val currentTimeUiState = currentState.timeUiState
+                    val currentUiState = currentState
                     currentState.copy(
-                        timeUiState = currentTimeUiState.copy(
-                            isTimePickerVisible = !currentTimeUiState.isTimePickerVisible,
-                            isDatePickerVisible = if (currentTimeUiState.isDatePickerVisible) false else currentTimeUiState.isDatePickerVisible
+                        startTimeUiState = currentUiState.startTimeUiState.copy(
+                            isTimePickerVisible = !currentUiState.startTimeUiState.isTimePickerVisible
+                        ),
+                        dateUiState = currentUiState.dateUiState.copy(
+                            isDatePickerVisible = if (currentUiState.dateUiState.isDatePickerVisible) false else currentUiState.dateUiState.isDatePickerVisible
                         )
                     )
+//                    currentState.copy(
+//                        timeUiState = currentTimeUiState.copy(
+//                            isTimePickerVisible = !currentTimeUiState.isTimePickerVisible,
+//                            isDatePickerVisible = if (currentTimeUiState.isDatePickerVisible) false else currentTimeUiState.isDatePickerVisible
+//                        )
+//                    )
                 }
             }
 
             is AddTaskEvents.AllDaySelected -> {
                 _uiState.update { currentState ->
-                    val currentTimeUiState = currentState.timeUiState
+                    val currentUiState = currentState
                     currentState.copy(
-                        timeUiState = currentTimeUiState.copy(
-                            isAllDaySelected = event.value
-                        )
+                        isAllDaySelected = event.value
+//                        isAllDaySelected = currentUiState.copy(
+//                            isAllDaySelected = event.value
+//                        )
                     )
                 }
             }
 
             AddTaskEvents.ExpandDateTimeSection -> {
                 _uiState.update { currentState ->
-                    val currentTimeUiState = currentState.timeUiState
+//                    val currentTimeUiState = currentState.timeUiState
                     currentState.copy(
-                        timeUiState = currentTimeUiState.copy(
-                            isTimeSectionExpanded = true
-                        )
+                        isTimeSectionExpanded = true
+//                        timeUiState = currentState.startTimeUiState.copy(
+//                            isTimeSectionExpanded = true
+                      //  )
                     )
                 }
             }
 
             AddTaskEvents.CollapseDateTimeSection -> {
                 _uiState.update { currentState ->
-                    val currentTimeUiState = currentState.timeUiState
+
                     currentState.copy(
-                        timeUiState = currentTimeUiState.copy(
-                            isTimeSectionExpanded = false
-                        )
+                        isTimeSectionExpanded = false
+//                        timeUiState = currentTimeUiState.copy(
+//                            isTimeSectionExpanded = false
+//                        )
                     )
                 }
             }
