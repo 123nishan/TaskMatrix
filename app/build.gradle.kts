@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias (libs.plugins.google.ksp)
+    alias(libs.plugins.androidx.room)
+
 }
 
 android {
@@ -49,6 +51,13 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    room {
+        // all variants will write schemas here:
+        schemaDirectory("$projectDir/schemas")
+        // (you can also do variant-specific:
+        // schemaDirectory("debug", "$projectDir/schemas/debug")
+        // )
+    }
 }
 
 dependencies {
@@ -61,6 +70,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.junit.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -91,4 +101,5 @@ dependencies {
     // annotationProcessor(libs.androidx.room.compiler) // We use ksp instead of annotationProcessor for Room compiler
     ksp(libs.androidx.room.compiler) // Use ksp for the Room compiler
     implementation(libs.androidx.room.ktx)
+    testImplementation(libs.androidx.room.testing)
 }
