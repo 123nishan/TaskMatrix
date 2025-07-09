@@ -5,11 +5,12 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import com.nishan.taskmatrix.data.model.TaskEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TaskDao {
     @Query("SELECT * FROM TaskEntity")
-    suspend fun getAll(): List<TaskEntity>
+    fun getAll(): Flow<List<TaskEntity>>
 
     @Query("SELECT * FROM TaskEntity WHERE id = :id")
     suspend fun getById(id: Int): TaskEntity

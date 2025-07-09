@@ -27,7 +27,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
@@ -79,12 +78,16 @@ import com.nishan.taskmatrix.util.convertMillisToDate
 import org.koin.androidx.compose.koinViewModel
 import java.util.Locale
 
+private fun formatTime(hour: Int, minute: Int): String {
+    return String.format("%02d:%02d", hour, minute)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTaskRoot(
     modifier: Modifier = Modifier,
     addTaskViewModel: AddTaskViewModel = koinViewModel<AddTaskViewModel>(),
-    snackBarHostState: SnackbarHostState
+    onShowSnackbar: suspend (String, String?) -> Boolean
 ) {
     val state: AddTaskUiState by addTaskViewModel.uiState.collectAsStateWithLifecycle()
     AddTaskScreen(
@@ -95,7 +98,7 @@ fun AddTaskRoot(
     )
     LaunchedEffect(Unit) {
         addTaskViewModel.snackBarChannel.collect {
-            snackBarHostState.showSnackbar(it)
+          onShowSnackbar(it,null)
         }
     }
 }
@@ -112,7 +115,7 @@ fun AddTaskScreen(
         convertMillisToDate(it)
     } ?: ""
     val keyboardController = LocalSoftwareKeyboardController.current
-    var selectedPriority by remember { mutableStateOf<Priority>(Priority.Low) }
+    val selectedPriority = addTaskUiState.priorityUiState.selectedPriority
 
     Box(
         modifier = Modifier
@@ -193,45 +196,31 @@ fun AddTaskScreen(
                                     isDateSelected = addTaskUiState.dateUiState.isDatePickerVisible,
                                     onDateSelectedChange = {
                                         onEvent(AddTaskEvents.ShowDatePicker)
-//                                        isDateSelected = !isDateSelected
-//                                        if (isTimeSelected) isTimeSelected = false
                                     },
-
-                                    )
+                                )
                                 AllDayRow(
                                     allDaySelected = addTaskUiState.isAllDaySelected,
                                     onAllDaySelectedChange = {
-//                                        isAllDaySelected = it
                                         onEvent(AddTaskEvents.AllDaySelected(it))
-//                                        if (isTimeSelected) isTimeSelected = false
-//                                        if (isDateSelected) isDateSelected = false
                                     })
-//                                TimeSelector(
-//                                    onStartTimeSelectedChange = {},
-//                                    onEndTimeSelectedChange = {},
-//                                    isStartTimeSelected = true,
-//                                    isEndTimeSelected = false,
-//                                    selectedStartTime = "10:00",
-//                                    selectedEndTime = "12:00",
-//                                    isAllDaySelected = false
-//
-//                                )
-                                DateAndTimeSelector(
+                                TimeSelector(
+                                    onStartTimeSelectedChange = {
+                                        onEvent(AddTaskEvents.ShowStartTimePicker)
+                                    },
+                                    onEndTimeSelectedChange = {
+                                        onEvent(AddTaskEvents.ShowEndTimePicker)
+                                    },
+                                    isStartTimeSelected = addTaskUiState.startTimeUiState.isTimePickerVisible,
+                                    isEndTimeSelected = addTaskUiState.endTimeUiState.isTimePickerVisible,
+                                    selectedStartTime = formatTime(
+                                        addTaskUiState.startTimeUiState.timePickerState.hour,
+                                        addTaskUiState.startTimeUiState.timePickerState.minute
+                                    ),
+                                    selectedEndTime = formatTime(
+                                        addTaskUiState.endTimeUiState.timePickerState.hour,
+                                        addTaskUiState.endTimeUiState.timePickerState.minute
+                                    ),
                                     isAllDaySelected = addTaskUiState.isAllDaySelected,
-                                    selectedDate = selectedDate,
-                                    isDateSelected = addTaskUiState.dateUiState.isDatePickerVisible,
-                                    onDateSelectedChange = {
-                                        onEvent(AddTaskEvents.ShowDatePicker)
-//                                        isDateSelected = !isDateSelected
-//                                        if (isTimeSelected) isTimeSelected = false
-                                    },
-                                    onTimeSelectedChange = {
-                                        onEvent(AddTaskEvents.ShowTimePicker)
-//                                        isTimeSelected = !isTimeSelected
-//                                        if (isDateSelected) isDateSelected = false
-                                    },
-                                    isTimeSelected = addTaskUiState.startTimeUiState.isTimePickerVisible,
-                                    selectedTime = "${addTaskUiState.startTimeUiState.timePickerState.hour} : ${addTaskUiState.startTimeUiState.timePickerState.minute}"
                                 )
 
                                 AnimatedVisibility(
@@ -268,6 +257,16 @@ fun AddTaskScreen(
                                             .align(Alignment.CenterHorizontally)
                                     )
                                 }
+                                AnimatedVisibility(
+                                    visible = addTaskUiState.endTimeUiState.isTimePickerVisible
+                                ) {
+                                    TimePicker(
+                                        state = addTaskUiState.endTimeUiState.timePickerState,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .align(Alignment.CenterHorizontally)
+                                    )
+                                }
                             }
 
                         }
@@ -277,9 +276,8 @@ fun AddTaskScreen(
             PrioritySelector(
                 selectedPriority = selectedPriority,
                 onPrioritySelectionChange = {
-                    selectedPriority = it
+                    onEvent(AddTaskEvents.PrioritySelected(it))
                 }
-
             )
             Spacer(
                 modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars)
@@ -317,7 +315,6 @@ fun AddTaskScreen(
         }
     }
 }
-
 
 
 @Composable
@@ -463,6 +460,7 @@ private fun AddTaskScreenPreview() {
         AddTaskScreen(
             modifier = Modifier.fillMaxSize(),
             addTaskUiState = AddTaskUiState(
+                isTimeSectionExpanded = true,
                 dateUiState = DateUiState(
                     isDatePickerVisible = true,
                     datePickerState = DatePickerState(
@@ -488,8 +486,8 @@ private fun AddTaskScreenPreview() {
                         )
                 )
             ),
-            onEvent = TODO(),
-            toSaveValidationState = TODO(),
+            onEvent = {},
+            toSaveValidationState = ToSaveValidationState(),
         )
     }
 }

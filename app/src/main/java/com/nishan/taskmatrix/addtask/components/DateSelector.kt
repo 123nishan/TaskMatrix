@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.trace
 
 @Composable
 fun DateSelector(
@@ -22,36 +23,38 @@ fun DateSelector(
     onDateSelectedChange: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier.fillMaxSize(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Default.CalendarToday,
-            contentDescription = null,
-            modifier = Modifier
-                .align(
-                    Alignment.CenterVertically
-                )
-        )
-        Text(
-            text = "Date",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(16.dp)
-        )
-        Spacer(modifier = Modifier.weight(1f))
+    trace("DateSelectorTrace") {
 
-        FilterChip(
-            onClick = onDateSelectedChange,
-            label = {
-                Text(
-                    selectedDate,
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-            selected = isDateSelected
-        )
+        Row(
+            modifier = modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.CalendarToday,
+                contentDescription = null,
+                modifier = Modifier
+                    .align(
+                        Alignment.CenterVertically
+                    )
+            )
+            Text(
+                text = "Date",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(16.dp)
+            )
+            Spacer(modifier = Modifier.weight(1f))
 
+            FilterChip(
+                onClick = onDateSelectedChange,
+                label = {
+                    Text(
+                        selectedDate,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                },
+                selected = isDateSelected
+            )
 
+        }
     }
 }

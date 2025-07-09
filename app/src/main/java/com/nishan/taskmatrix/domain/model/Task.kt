@@ -10,3 +10,4 @@ data class Task(
     val endTime: Long?,
     val isAllDay: Boolean
 )
+

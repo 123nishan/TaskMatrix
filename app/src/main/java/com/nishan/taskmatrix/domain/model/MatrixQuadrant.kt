@@ -8,4 +8,7 @@ sealed class MatrixQuadrant(
     object Schedule  : MatrixQuadrant("SCHEDULE",   "Schedule")
     object Delegate  : MatrixQuadrant("DELEGATE",   "Delegate")
     object Eliminate : MatrixQuadrant("ELIMINATE",  "Eliminate")
+    companion object {
+        val values by lazy { listOf(DoFirst, Schedule, Delegate, Eliminate) }
+    }
 }

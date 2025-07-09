@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias (libs.plugins.google.ksp)
     alias(libs.plugins.androidx.room)
-
+    kotlin("plugin.serialization") version "2.0.21"
 }
 
 android {
@@ -101,5 +101,7 @@ dependencies {
     // annotationProcessor(libs.androidx.room.compiler) // We use ksp instead of annotationProcessor for Room compiler
     ksp(libs.androidx.room.compiler) // Use ksp for the Room compiler
     implementation(libs.androidx.room.ktx)
-    testImplementation(libs.androidx.room.testing)
+    implementation(libs.androidx.navigation.compose)
+    androidTestImplementation(libs.androidx.room.testing)
+    implementation(libs.kotlinx.serialization.json)
 }

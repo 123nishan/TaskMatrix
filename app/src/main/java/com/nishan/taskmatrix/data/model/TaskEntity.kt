@@ -4,6 +4,7 @@ import android.adservices.topics.Topic
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.nishan.taskmatrix.domain.model.Priority
 import com.nishan.taskmatrix.domain.model.Task
 
 @Entity
@@ -13,9 +14,8 @@ data class TaskEntity(
     @ColumnInfo(name = "description") val description: String,
     @ColumnInfo(name = "priority") val priority: Int,
     @ColumnInfo(name = "date") val date: Long?,
-    @ColumnInfo(name = "time") val time: Long?,
-//    @ColumnInfo(name = "start_time") val startTime: Long?,
-//    @ColumnInfo(name = "end_time") val endTime: Long?,
+    @ColumnInfo(name = "start_time") val startTime: Long?,
+    @ColumnInfo(name = "end_time") val endTime: Long?,
     @ColumnInfo(name = "is_all_day") val isAllDay: Boolean
 )
 
@@ -24,8 +24,19 @@ fun Task.asEntity() = TaskEntity(
     description = description,
     priority = priority.level,
     date = date,
-    time = startTime,
-//    startTime = startTime,
-//    endTime = endTime,
+    startTime = startTime,
+    endTime = endTime,
+    isAllDay = isAllDay
+)
+
+fun TaskEntity.asExternalModel() = Task(
+    title = title,
+    description = description,
+    priority = Priority.values.first{
+        it.level == priority
+    },
+    date = date,
+    startTime = startTime,
+    endTime = endTime,
     isAllDay = isAllDay
 )

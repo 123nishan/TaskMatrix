@@ -17,6 +17,8 @@ data class AddTaskUiState(
     val toSaveValidationState: ToSaveValidationState = ToSaveValidationState(),
     val isTimeSectionExpanded: Boolean = false,
     val isAllDaySelected: Boolean = false,
+    val isLoading: Boolean = false,
+    val error: String? = null
 )
 
 // Needs initialization for DatePickerState and TimePickerState
@@ -35,3 +37,10 @@ data class DateUiState(
 data class PriorityUiState(
     val selectedPriority: Priority = Priority.Low
 )
+
+sealed class AddTaskMessage {
+    data class ValidationError(val fields: List<String>) : AddTaskMessage()
+    data class DatabaseError(val message: String) : AddTaskMessage()
+    object Success : AddTaskMessage()
+
+}
