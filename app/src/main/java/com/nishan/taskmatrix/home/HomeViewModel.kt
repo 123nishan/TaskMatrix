@@ -6,6 +6,7 @@ import com.nishan.taskmatrix.domain.mapper.mapToQuadrant
 import com.nishan.taskmatrix.domain.mapper.toQuadrantCounts
 import com.nishan.taskmatrix.domain.model.MatrixQuadrant
 import com.nishan.taskmatrix.domain.repository.TaskRepository
+import com.nishan.taskmatrix.util.isToday
 import com.nishan.taskmatrix.util.toLocalDate
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +23,7 @@ class HomeViewModel(
 
     val feedState: StateFlow<HomeUiState> = taskRepository.fetchAllTasks()
         .map { it ->
+
             val quadrantMap: List<MatrixQuadrant> = it.map {
                 mapToQuadrant(
                     stars = it.priority.level,
@@ -29,10 +31,10 @@ class HomeViewModel(
                     allDay = it.isAllDay
                 )
             }
-            quadrantMap.forEach {
-                println("Quadrant Map: ${it.title}")
+            val todayTasks = it.filter { task ->
+                isToday(task.endTime, task.isAllDay)
             }
-            HomeUiState.Success(feed=it, quadrantCount = quadrantMap.toQuadrantCounts())
+            HomeUiState.Success(feed=todayTasks, quadrantCount = quadrantMap.toQuadrantCounts())
         }
         .catch {
             println("Error fetching tasks: ${it.message}")

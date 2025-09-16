@@ -2,10 +2,12 @@ package com.nishan.taskmatrix.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
@@ -14,12 +16,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -31,10 +37,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nishan.taskmatrix.domain.model.Priority
+import com.nishan.taskmatrix.domain.model.Task
 import com.nishan.taskmatrix.home.components.MatrixQuadrantScreen
 import com.nishan.taskmatrix.ui.theme.TaskMatrixTheme
 import com.nishan.taskmatrix.ui.theme.components.TaskCard
 import com.nishan.taskmatrix.ui.theme.components.TaskMatrixTextField
+import com.nishan.taskmatrix.util.isToday
 import org.koin.androidx.compose.koinViewModel
 import java.time.Instant
 import java.time.LocalDate
@@ -50,7 +58,7 @@ fun HomeScreenRoot(
     HomeScreen(onAddTaskClick = onAddTaskClick, feedState = feedState)
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier, onAddTaskClick: () -> Unit, feedState: HomeUiState) {
 
@@ -82,15 +90,32 @@ fun HomeScreen(modifier: Modifier = Modifier, onAddTaskClick: () -> Unit, feedSt
 
                 ) {
                     item {
-                        Text(
-                            text = "My tasks",
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth(),
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                                .fillMaxWidth()
+                                .height(56.dp)
+
+                        ){
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Spacer(Modifier.weight(2f))
+                                IconButton(onClick = {}) {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "My tasks",
+                                modifier = Modifier.align(Alignment.Center),
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
 
                     item {
@@ -127,18 +152,23 @@ fun HomeScreen(modifier: Modifier = Modifier, onAddTaskClick: () -> Unit, feedSt
                     items(
                         items = feedState.feed,
                     ) { task ->
-                        val isToday = isToday(
-                            date = task.date,
-                            isAllDay = task.isAllDay
-                        )
-                        val startTime = task.startTime?.let { convertEpochToTime(it) }
-                        TaskCard(
-                            modifier = Modifier,
-                            priority = Priority.Medium,
-                            taskName = task.title,
-                            due = if (isToday) "Today" else "$startTime",//TODO fix
-                            checked = false,
-                        )
+//                        val isToday = isToday(
+//                            date = task.date,
+//                            isAllDay = task.isAllDay
+//                        )
+                        if (feedState.feed.isEmpty()){
+                            Text(text= "No tasks found", modifier = Modifier.fillMaxWidth().align(Alignment.Center), maxLines = 1, )
+                        }else {
+                            val startTime = task.startTime?.let { convertEpochToTime(it) }
+                            TaskCard(
+                                modifier = Modifier,
+                                priority = Priority.Medium,
+                                taskName = task.title,
+                                due = if (task.isAllDay) "Today" else "$startTime",
+                                checked = false,
+                            )
+                        }
+                       
                     }
                     item {
                         Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
@@ -170,22 +200,6 @@ fun convertEpochToTime(timeEpoch: Long?): String {
     return "${dateTime.hour}:${dateTime.minute}"
 }
 
-fun isToday(date: Long?, isAllDay: Boolean): Boolean {
-    if (isAllDay) {
-        date?.let {
-            val dateTime = Instant.ofEpochMilli(date)
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate()
-            val today = LocalDate.now()
-            return@isToday dateTime == today
-
-        }
-        return false
-    } else {
-        return false
-    }
-}
-
 @Preview(
     showBackground = true,
     device = PIXEL_7_PRO
@@ -193,6 +207,8 @@ fun isToday(date: Long?, isAllDay: Boolean): Boolean {
 @Composable
 private fun HomeScreenPreview() {
     TaskMatrixTheme {
-        HomeScreen(onAddTaskClick = {}, feedState = HomeUiState.Loading)
+        HomeScreen(onAddTaskClick = {}, feedState = HomeUiState.Success(
+            feed = emptyList<Task>(), quadrantCount = mapOf()
+        ))
     }
 }
